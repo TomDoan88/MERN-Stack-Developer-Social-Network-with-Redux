@@ -15,6 +15,7 @@ const { check, validationResult } = require("express-validator");
 //  2nd: You need a token to access a route, it needs to be
 // authenticated and we will need to do it with jwt
 
+// This is for JWT tokens only
 router.get("/", auth, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("-password");
@@ -25,6 +26,8 @@ router.get("/", auth, async (req, res) => {
   }
 });
 
+// This logic is for existing users to log in and response with
+// an appropriate message based on users input.
 // @route  POST api/auth
 // @desc   Authenticate user & get token
 // @access Public
@@ -35,7 +38,7 @@ router.post(
   [check("email", "Please include a valid email").isEmail(), check("password", "Password is required").exists()],
   async (req, res) => {
     const error = validationResult(req);
-    // If the inputted result is not empty, but has errors then
+    // If the inputted result not empty, has errors then
     // This part is handling the response
     // If users do not send the information correctly then it is a bad request
     // We need to include a message that says so.
