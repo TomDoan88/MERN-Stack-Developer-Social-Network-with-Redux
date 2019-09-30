@@ -14,7 +14,7 @@ const User = require("../../models/User");
 //  2nd: You need a token to access a route, it needs to be
 // authenticated
 
-// Refernce. We don't have a route me made up. This is added in the URL
+// Refernce. We don't have a route me made up. This is added in the URL for /me
 
 router.get("/me", auth, async (req, res) => {
   try {
@@ -51,7 +51,7 @@ router.post(
   async (req, res) => {
     const error = validationResult(req);
     if (!error.isEmpty()) {
-      // If there are error, we want to return response
+      // If there are errors from not empty field, we want to return response
       return res.status(400).json({ error: error.array() });
     }
 
@@ -80,6 +80,7 @@ router.post(
 
     // We need to get the users being submit ID into the profileFields
     // As we know we have an access to the USER model / Schema
+    // Need to check for incoming data
     const profileFields = {};
     profileFields.user = req.user.id;
     if (company) {
@@ -101,8 +102,58 @@ router.post(
       profileFields.location = githubusername;
     }
     // We need to turn skills into an array, trim the data regardless of space
+    if (skills) {
+      profileFields.skills = skills.split(",").map(skill => skill.trim());
+    }
+    console.log(profileFields.skills);
 
-    profileFields.skills = skills.split(",").map(skill => skill.trim());
+    // Now we can build the social object of the profileFields variable
+    // Again we need to check for incoming data
+
+    profileFields.social = {};
+    if (youtube) {
+      profileFields.social.youtube = youtube;
+    }
+    if (twitter) {
+      profileFields.social.twitter = twitter;
+    }
+    if (facebook) {
+      profileFields.social.facebook = facebook;
+    }
+
+    if (linkedin) {
+      profileFields.social.linked = linkedin;
+    }
+
+    if (instagram) {
+      profileFields.social.instagram = instagram;
+    }
+
+    console.log(profileFields.social.instagram);
+    console.log(profileFields.social.facebook);
+
+    // Find and update profiles if they are found
+    try {
+      let profile = await Profile.findOne({ user: req.user.id });
+
+      if (profile) {
+        profile = findOneAndUpdate({ user: req.user.id }, { $set: profileFields }, { new: true });
+        return res.json(profile);
+      }
+
+      // There should be an else statement but since this is simplre return we can
+      // just for go the else statement
+      else {
+        profile = new Profile(profileFields);
+        await Profile.save();
+        res.json(profile);
+      }
+
+      // CREATE PROFILE if they are not found.
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).send("Server Errror");
+    }
   }
 );
 module.exports = router;
