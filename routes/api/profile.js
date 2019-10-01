@@ -6,6 +6,7 @@ const { check, validationResult } = require("express-validator");
 const Profile = require("../../models/Profile");
 const User = require("../../models/User");
 
+// This route here is to update / create profiles
 // @route  GET api/profile/me
 // @desc   Get current users profile
 // @access Private
@@ -93,13 +94,13 @@ router.post(
       profileFields.location = location;
     }
     if (bio) {
-      profileFields.location = bio;
+      profileFields.bio = bio;
     }
     if (status) {
       profileFields.status = status;
     }
     if (githubusername) {
-      profileFields.location = githubusername;
+      profileFields.githubusername = githubusername;
     }
     // We need to turn skills into an array, trim the data regardless of space
     if (skills) {
@@ -109,6 +110,8 @@ router.post(
 
     // Now we can build the social object of the profileFields variable
     // Again we need to check for incoming data
+    // Note how we initialize profileFields.social = {}
+    // because social will be an object contains various list and propertie
 
     profileFields.social = {};
     if (youtube) {
@@ -137,7 +140,7 @@ router.post(
       let profile = await Profile.findOne({ user: req.user.id });
 
       if (profile) {
-        profile = findOneAndUpdate({ user: req.user.id }, { $set: profileFields }, { new: true });
+        profile = await Profile.findOneAndUpdate({ user: req.user.id }, { $set: profileFields }, { new: true });
         return res.json(profile);
       }
 
@@ -145,7 +148,7 @@ router.post(
       // just for go the else statement
       else {
         profile = new Profile(profileFields);
-        await Profile.save();
+        await profile.save();
         res.json(profile);
       }
 
