@@ -146,6 +146,11 @@ router.post(
 
       // There should be an else statement but since this is simplre return we can
       // just for go the else statement
+
+      // Mistake / Error to watch
+      // we cannot use await Profile.save(),
+      // it has to be an instance of Proflile
+      // In this case it will be profile.save
       else {
         profile = new Profile(profileFields);
         await profile.save();
@@ -159,4 +164,21 @@ router.post(
     }
   }
 );
+
+// @route   GET api/profile
+// @desc    GET all profiles
+// @access  Public
+
+// We are wanting to populate the profile here with existing names and avatar
+// from the users we wanna grab.
+
+router.get("/", async (req, res) => {
+  try {
+    const profiles = await Profile.find().populate("user", ["name", "avatar"]);
+    res.json(profiles);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send("Server Error");
+  }
+});
 module.exports = router;
