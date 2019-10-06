@@ -196,6 +196,8 @@ router.get("/user/:user_id", async (req, res) => {
     res.json(profile);
   } catch (err) {
     console.error(err.message);
+    // I wanted to let users know the specific error cause and not have them to think
+    // this is a server error, hence we are using conditional with err.kind
     if (err.kind == "Object ID") {
       return res.status(400).json({ msg: "Profile not Found" });
     }
