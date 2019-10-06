@@ -12,8 +12,7 @@ const User = require("../../models/User");
 // @access Private
 
 //   1st: because users profile need to be authenticated
-//  2nd: You need a token to access a route, it needs to be
-// authenticated
+//  2nd: You need a token to access a route, it needs to be authenticated
 
 // Refernce. We don't have a route me made up. This is added in the URL for /me
 
@@ -204,4 +203,26 @@ router.get("/user/:user_id", async (req, res) => {
     res.status(500).send("Server Error");
   }
 });
+
+// @route  DELETE  api/profile
+// @desc   DELETE  profile, user & posts
+// @access PRIVATE
+
+// If it's private we will need the AUTH middleware
+
+router.delete("/", auth, async (req, res) => {
+  try {
+    // Remove Profile
+    await Profile.findOneAndRemove({ user: req.params.id });
+
+    // Remove User.
+    // It's req.user.id because we are already targeting _id: object ???
+    await User.findOneAndRemove({ _id: req.user.id });
+    res.json("User deleted");
+  } catch (err) {
+    error.console(err.message);
+    res.status(500).send("Server Error");
+  }
+});
+
 module.exports = router;
