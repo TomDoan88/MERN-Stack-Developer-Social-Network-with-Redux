@@ -12,8 +12,7 @@ const User = require("../../models/User");
 // @access Private
 
 //   1st: because users profile need to be authenticated
-//  2nd: You need a token to access a route, it needs to be authenticated
-
+//   2nd: You need a token to access a route, it needs to be authenticated
 // Refernce. We don't have a route me made up. This is added in the URL for /me
 
 router.get("/me", auth, async (req, res) => {
@@ -32,7 +31,7 @@ router.get("/me", auth, async (req, res) => {
 });
 
 // @route  POST  api/profile
-// @desc   CREATE OR UPDATE USER PROFILE
+// @desc   CREATE OR UPDATE PROFILE
 // @access Private
 
 router.post(
@@ -70,9 +69,8 @@ router.post(
       linkedin
     } = req.body;
 
-    // We need to make sure Bio was added before
-    // we submit to the database
-    // Build Profile Object
+    // If users exist: UPDATE
+    // If users do not exist: CREATE
 
     // Initialzing profileFields as an empty Object for now
     // Because we will desstructure and shove the data in there
@@ -131,10 +129,6 @@ router.post(
     if (instagram) {
       profileFields.social.instagram = instagram;
     }
-
-    console.log(profileFields.social.instagram);
-    console.log(profileFields.social.facebook);
-
     try {
       let profile = await Profile.findOne({ user: req.user.id });
 
@@ -182,12 +176,13 @@ router.get("/", async (req, res) => {
 });
 
 //@route  GET api/profile/user/:user_id
-//@desc   GET profile by userID not profileID
+//@desc   GET profile by USERID
 //@access PUBLIC
 
 // 1st: Get the user Exact ID
 // 2nd: Find that userID
 // Add the name and avatar related to the user you just got by using populate method
+// NOTE:
 router.get("/user/:user_id", async (req, res) => {
   try {
     const profile = await Profile.findOne({ user: req.params.user_id }).populate("user", ["name", "avatar"]);
@@ -195,8 +190,8 @@ router.get("/user/:user_id", async (req, res) => {
     res.json(profile);
   } catch (err) {
     console.error(err.message);
-    // I wanted to let users know the specific error cause and not have them to think
-    // this is a server error, hence we are using conditional with err.kind
+    //  I wanted to let users know the specific error cause and not generic server error
+    //  hence we are using conditional with err.kind
     if (err.kind == "Object ID") {
       return res.status(400).json({ msg: "Profile not Found" });
     }
@@ -221,6 +216,80 @@ router.delete("/", auth, async (req, res) => {
     res.json("User deleted");
   } catch (err) {
     error.console(err.message);
+    res.status(500).send("Server Error");
+  }
+});
+
+// @route  PUT  api/profile/ experience
+// @desc   ADD profile experience
+// @access PRIVATE
+
+// MENTAL NOTE: We are just updating part of the profile
+// experience is just an {} inside of another object.
+
+router.put(
+  "/experience",
+  [
+    auth,
+    [
+      check("title", "Title is required")
+        .not()
+        .isEmpty(),
+      check("company", "Company is required")
+        .not()
+        .isEmpty(),
+      check("from", "Title is required")
+        .not()
+        .isEmpty()
+    ]
+  ],
+  async (req, res) => {
+    const error = validationResult(req);
+    if (!error.isEmpty()) {
+      // If there are data but errors, we want to return response
+      return res.status(400).json({ error: error.array() });
+    }
+    const { title, company, location, from, to, current, description } = req.body;
+
+    const newExp = { title, company, location, from, to, current, description };
+
+    try {
+      const profile = await Profile.findOne({ user: req.user.id });
+
+      profile.experience.unshift(newExp); // unshift because latest data appear first.
+
+      profile.save();
+
+      res.json(profile);
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).send("Server Error");
+    }
+  }
+);
+
+// @route  DELETE  api/profile/ experience/:exp_id
+// @desc   DELETE  experience from profile
+// @access PRIVATE
+
+// Get profile -> Identify which experience  needs remove by get index, and then cut it out
+// Return json.
+// Save the profile
+// Mental Note: await need to be used when finding the Profile / Users
+
+router.delete("/experience/:exp_id", auth, async (req, res) => {
+  try {
+    // Get / identify priofile we are targeting.
+    const profile = await Profile.findOne({ user: req.user.id });
+
+    // Loop through experience. get index of the parameter being passed in hence req.params.exp_id
+    const removeIndex = profile.experience.map(item => item.id).indexOf(req.params.exp_id);
+    profile.experience.splice(removeIndex, 1);
+
+    await profile.save();
+    res.json(profile);
+  } catch (err) {
+    console.error(err.message);
     res.status(500).send("Server Error");
   }
 });

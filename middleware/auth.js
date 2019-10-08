@@ -21,8 +21,8 @@ module.exports = function(req, res, next) {
   }
 };
 
-// After all this is done. We need to implent all these into
+// After all this is done. We need to implement
+// all these into
 // our protected route. We will implement this logic  in our
 // auth.js route located inside routes/api folders.
-// The reason for JWT us because we want to let users log in
-// easily the next time they revisit our website.
+// The reason for JWT ? -> users able to log in easily the next time they revisit our website.
