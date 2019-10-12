@@ -2,6 +2,8 @@ const express = require("express");
 const router = express.Router();
 const auth = require("../../middleware/auth");
 const { check, validationResult } = require("express-validator");
+const config = require("config");
+const request = require("request");
 
 const Profile = require("../../models/Profile");
 const User = require("../../models/User");
@@ -104,7 +106,6 @@ router.post(
     if (skills) {
       profileFields.skills = skills.split(",").map(skill => skill.trim());
     }
-    console.log(profileFields.skills);
 
     // Now we can build the social object of the profileFields variable
     // Again we need to check for incoming data
@@ -351,6 +352,34 @@ router.delete("/education/:edu_id", auth, async (req, res) => {
     profile.education.splice(removeIndex, 1);
     await profile.save();
     res.json(profile);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send("Server Error");
+  }
+});
+
+// @route GET api/profile/github/:username
+// @desc  GET users repo from GitHub
+// @access Public
+
+router.get("/github/:username", (req, res) => {
+  try {
+    const option = {
+      uri: `https://api.github.com/users/${req.params.username}/repos?per_page=5&
+    sort=created:asc&client_id=${config.get("githubClientId")}&client_secret=
+    ${config.get("githubSecret")}`,
+      method: "GET",
+      headers: { "user-agent": "node.js" }
+    };
+    request(option, (error, response, body) => {
+      if (error) console.error(error);
+
+      if (response.statusCode !== 200) {
+        res.status(400).json({ msg: "No github profile found" });
+      }
+      // NOTE: json returns strings, JSON.parse(body) converts it back in JS
+      res.json(JSON.parse(body));
+    });
   } catch (err) {
     console.error(err.message);
     res.status(500).send("Server Error");
