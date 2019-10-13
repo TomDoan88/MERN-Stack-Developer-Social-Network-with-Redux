@@ -22,7 +22,7 @@ const PostSchema = new Schema({
   likes: [
     {
       user: {
-        type: Scheme.Types.ObjectId,
+        type: Schema.Types.ObjectId,
         ref: "user"
       }
     }
@@ -30,7 +30,7 @@ const PostSchema = new Schema({
   comments: [
     {
       user: {
-        type: Scheme.Types.ObjectId,
+        type: Schema.Types.ObjectId,
         ref: "user"
       },
       text: {
