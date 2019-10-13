@@ -37,7 +37,7 @@ router.post(
         text: req.body.text,
         name: user.name,
         avatar: user.avatar,
-        user: request.user.id
+        user: req.user.id
       });
       // Save data
       // response with json data
@@ -49,4 +49,48 @@ router.post(
     }
   }
 );
+
+// @route  GET api/ Posts
+// @desc   GET all Post
+// @access PRIVATE, you need to be logged in to see POST
+
+// Private will need auth
+// No need for validation as there are no inputs
+// router.get
+
+router.get("/", auth, async (req, res) => {
+  try {
+    const posts = await Post.find().sort({ date: -1 });
+    res.json(posts);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send("Server Error");
+  }
+});
+
+// @route  GET api/ PostID
+// @desc   GET single POSTID
+// @access PRIVATE
+
+router.get("/:id", auth, async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+
+    if (!post) {
+      return res.status(500).json({ msg: "Post not found" });
+    }
+
+    res.json(post);
+  } catch (err) {
+    // We want to let users know whether this is server error
+    // or post just does not exist.
+    console.error(err.message);
+    if (err.kind !== "Object ID") {
+      return;
+      res.status(400).json({ msg: "Post does not exist" });
+    }
+    res.status(500).send("Server Error");
+  }
+});
+
 module.exports = router;
