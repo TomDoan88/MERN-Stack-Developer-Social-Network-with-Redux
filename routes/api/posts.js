@@ -84,10 +84,40 @@ router.get("/:id", auth, async (req, res) => {
   } catch (err) {
     // We want to let users know whether this is server error
     // or post just does not exist.
+    //
     console.error(err.message);
-    if (err.kind !== "Object ID") {
-      return;
-      res.status(400).json({ msg: "Post does not exist" });
+    if (err.kind === "ObjectId") {
+      return res.status(400).json({ msg: "Post not found" });
+    }
+    res.status(500).send("Server Error");
+  }
+});
+
+// @route  DELETE api/post/:id
+// @desc   Delete a post
+// @access PRIVATE
+
+router.delete("/:id", auth, async (req, res) => {
+  try {
+    const posts = await Post.findById(req.params.id);
+
+    // If post does not exist
+    if (!posts) {
+      return res.status(404).json({ msg: " Post not found " });
+    }
+    // We want to make sure the user deleting the post is user that owns the post
+    // NOTE:  posts.user gives us postId associated with a user
+    // toString() to make sure both post.user match the req.user.id in strong format
+    if (posts.user.toString() !== req.user.id) {
+      return res.status(401).json({ msg: "User not authorized" });
+    }
+
+    await posts.remove();
+    res.json({ msg: "Post removed" });
+  } catch (err) {
+    console.error(err.message);
+    if (err.kind === "ObjectId") {
+      return res.status(400).json({ msg: "Post not found" });
     }
     res.status(500).send("Server Error");
   }
