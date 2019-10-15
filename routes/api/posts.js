@@ -123,4 +123,39 @@ router.delete("/:id", auth, async (req, res) => {
   }
 });
 
+// @route  PUT  api/post/like/:id
+// @desc   Like a post
+// @access PRIVATE
+
+router.put("/like/:id", auth, async (req, res) => {
+  try {
+    // Find the ID of the post request
+    const post = await Post.findById(req.params.id);
+
+    // Check if the post has already been liked
+    // Compare current iteration to user currently logged in
+    // Need to match the user data to req.user.id hence toString
+    // length > 0 means it has already been liked.
+
+    // In the Post Database schema we chose likes key with the array so
+    // we can iterate through it.
+
+    // NOTE: MISTAKE TO WATCH OUT FOR
+
+    if (post.likes.filter(like => like.user.toString() === req.user.id).length > 0) {
+      return res.status(400).json({ msg: "You already liked this post" });
+    }
+
+    // pop the user into the array
+    post.likes.unshift({ user: req.user.id });
+    await post.save();
+
+    // Useful for REDUX later
+    res.json(post.likes);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send("Sever Error");
+  }
+});
+
 module.exports = router;
