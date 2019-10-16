@@ -107,7 +107,7 @@ router.delete("/:id", auth, async (req, res) => {
     }
     // We want to make sure the user deleting the post is user that owns the post
     // NOTE:  posts.user gives us postId associated with a user
-    // toString() to make sure both post.user match the req.user.id in strong format
+    // toString() to make sure both post.user match the req.user.id in string format
     if (posts.user.toString() !== req.user.id) {
       return res.status(401).json({ msg: "User not authorized" });
     }
@@ -140,8 +140,6 @@ router.put("/like/:id", auth, async (req, res) => {
     // In the Post Database schema we chose likes key with the array so
     // we can iterate through it.
 
-    // NOTE: MISTAKE TO WATCH OUT FOR
-
     if (post.likes.filter(like => like.user.toString() === req.user.id).length > 0) {
       return res.status(400).json({ msg: "You already liked this post" });
     }
@@ -150,12 +148,99 @@ router.put("/like/:id", auth, async (req, res) => {
     post.likes.unshift({ user: req.user.id });
     await post.save();
 
-    // Useful for REDUX later
+    // Useful for REDUX later, keep an eye on this
     res.json(post.likes);
   } catch (err) {
     console.error(err.message);
     res.status(500).send("Sever Error");
   }
 });
+
+// @route  DELETE api/post/unlike/:id
+// @desc   Unlike a post
+// @access PRIVATE
+
+router.put("/unlike/:id", auth, async (req, res) => {
+  try {
+    // Find the ID of the post request
+    const post = await Post.findById(req.params.id);
+
+    // length === 0 = we have not liked yet
+    // Therefore can unlike untill we hit counter 0
+    if (post.likes.filter(like => like.user.toString() === req.user.id).length === 0) {
+      return res.status(400).json({ msg: " No like on this post yet" });
+    }
+
+    // Getting the correct like to remove
+    const removeIndex = post.likes.map(like => like.user.toString()).indexOf(req.user.id);
+    post.likes.splice(removeIndex, 1);
+
+    await post.save();
+    // Useful for REDUX later, keep an eye on this
+    res.json(post.likes);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send("Sever Error");
+  }
+});
+
+// @route  POST  api/post/comment
+// @desc   Comment on a post
+// @access Private
+
+router.post(
+  "/comment/:id",
+  [
+    auth,
+    [
+      check("text", "text is required")
+        .not()
+        .isEmpty()
+    ]
+  ],
+  async (req, res) => {
+    const error = validationResult(req);
+    if (!error.isEmpty()) {
+      return res.status(400).json({ error: error.array() }); // json return error object
+    }
+
+    try {
+      // User logged in, we have the JWT which gives us UserID
+      // that attach to request.userID = no need for req.parrams.id
+      // const user = User.findById(req.user.id).select("-password");
+      // Creating a new post
+      const user = await User.findById(req.user.id).select("-password");
+
+      // Why req.params.id ? params will be hit by the id via URL hence the params
+      const post = await Post.findById(req.params.id);
+
+      // newComment !=== new Post() instantiate because
+      // We are not generating new Post...
+      const newComment = {
+        text: req.body.text,
+        name: user.name,
+        avatar: user.avatar,
+        user: req.user.id
+      };
+
+      // Adding new comments Objectinto the comments array
+      post.comments.unshift(newComment);
+
+      // Save data
+      // response with json data
+      await post.save();
+      res.json(post.comments);
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).send("Sever Errorr");
+    }
+  }
+);
+
+// @route  DELETE api/postS/comment/:id/:comment_id
+// @desc   Delete comment
+// @access Private
+
+// IMPORTANT: We need to find post ID and which comment to delete
 
 module.exports = router;
