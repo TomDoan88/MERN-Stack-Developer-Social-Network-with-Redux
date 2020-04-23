@@ -7,9 +7,6 @@ const config = require("config");
 const { check, validationResult } = require("express-validator");
 const User = require("../../models/User");
 
-// @route  POST  api/users
-// @desc   Register route
-// @access Public
 // Why access = public ??,
 //   1st: because users profile need to be authenticated
 //2nd: You need a token to access a route, it needs to be authenticated
@@ -19,61 +16,65 @@ const User = require("../../models/User");
 // Each users have an avatar
 // Encrypt the password.
 
+// @route  POST  api/users
+// @desc   REGISTER USER
+// @access Public
 router.post(
   "/",
-  // Checking for all the validation
   [
-    check("name", "Name is required")
-      .not()
-      .isEmpty(),
-    check("email", "Please include a valid email").isEmail(),
-    check("password", "Please include a password").isLength({ min: 6 })
+    // Name, Email, Passwords validations with check
+    check("name", "Please enter your name"),
+    check("email", "Please enter email").isEmail(),
+    check("password", "Enter password with 6 or more character").isLength({ min: 6 })
   ],
   async (req, res) => {
-    const error = validationResult(req);
-    // If the inputted result is not empty, but has errors then
-    // This part is handling the response
-    // If users do not send the information correctly then it is a bad request
-    // We need to include a message that says so.
-    // console.log(req.body);
-    if (!error.isEmpty()) {
-      return res.status(400).json({ error: error.array() });
+    // Checking validation result from above
+    // Reminder: req data is param in validation function
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(422).json({ errors: errors.array() });
     }
+    // Destructure data sent in req.body
     const { name, email, password } = req.body;
+
     try {
       let user = await User.findOne({ email });
       if (user) {
-        res.status(400).json({ error: [{ msg: "User already exists" }] });
+        return res.status(400).json({ errors: [{ msg: "User already exists" }] });
+        // array in json because we want to match errors.array above
       }
 
-      // GETTING AVATARS FOR USERS
+      //Getting avatar for user
       const avatar = gravatar.url(email, {
         s: "200",
         r: "pg",
         d: "mm"
       });
 
+      // Create new instance of User
       user = new User({
         name,
         email,
-        avatar,
-        password
+        password,
+        avatar
       });
 
-      // PASSWORD ENCRYPTION / SAVE USERS TO DATABASE
+      // Encrypt password then save to database
       const salt = await bcrypt.genSalt(10);
       user.password = await bcrypt.hash(password, salt);
       await user.save();
+      // res.send("User registered");
 
-      // JSON WEBTOKENS
+      // Initialize payload = data of the id user
       const payload = {
         user: {
           id: user.id
         }
       };
+
       jwt.sign(payload, config.get("jwtSecret"), { expiresIn: 360000 }, (err, token) => {
         if (err) throw err;
-        res.json({ token });
+        res.json(token);
       });
     } catch (err) {
       console.error(err.message);
@@ -81,4 +82,5 @@ router.post(
     }
   }
 );
+
 module.exports = router;
