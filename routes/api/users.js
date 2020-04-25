@@ -16,7 +16,7 @@ const User = require("../../models/User");
 // Each users have an avatar
 // Encrypt the password.
 
-// @route  POST  api/users
+// @route  POST api/users
 // @desc   REGISTER USER
 // @access Public
 router.post(
@@ -74,7 +74,7 @@ router.post(
 
       jwt.sign(payload, config.get("jwtSecret"), { expiresIn: 360000 }, (err, token) => {
         if (err) throw err;
-        res.json(token);
+        res.json({ token });
       });
     } catch (err) {
       console.error(err.message);
